@@ -21,8 +21,6 @@ import javax.swing.JTextArea;
 import javax.swing.JTextPane;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.text.DefaultHighlighter;
-import javax.swing.text.Document;
 
 public class Pane {
 
@@ -155,49 +153,54 @@ public class Pane {
 
 				Token t = null;
 				try {
-					Stack<Token> tokens = new Stack<Token>();
-
 					while ((t = lexico.nextToken()) != null) {
 						tableModel.addRow(new Object[] { t.getId(), t.getLexeme(), t.getPosition() });
-						tokens.push(t);
 					}
 
-					tokens = reverseStack(tokens);
+					lexico.setInput(code);
 
+					stack.push(Constants.DOLLAR);
 					stack.push(Constants.START_SYMBOL);
-					int a = 0; // próximo símbolo da entrada
 
-					Token token = null;
+					Token previousToken = null;
+					Token currentToken = lexico.nextToken();
+
 					while (!stack.empty()) {
 
-						int X = stack.pop(); // topo da pilha
+						if (currentToken == null) {
+							int pos = 0;
+							if (previousToken != null)
+								pos = previousToken.getPosition() + previousToken.getLexeme().length();
 
-						if (tokens.empty()) {
-							tokens.push(new Token(Constants.DOLLAR, "$", 0));
-						} else {
-							token = tokens.peek();
-							a = token.getId();
+							currentToken = new Token(Constants.DOLLAR, "$", pos);
 						}
+
+						int X = stack.pop(); // topo da pilha
+						int a = currentToken.getId(); // próximo símbolo da entrada
 
 						if (X != Constants.EPSILON) {
 
 							if (isTerminal(X)) {
 
 								if (X == a) {
-									tokens.pop();
+									previousToken = currentToken;
+									currentToken = lexico.nextToken();
 								} else {
-									throw new Error("Erro sintático encontrado em um símbolo terminal: "+ParserConstants.PARSER_ERROR[X] +
-											" no token: " +token.getId()+" no lexema: "+token.getLexeme()+" na posição: "+token.getPosition());
+									throw new Error("Erro sintático encontrado em um símbolo terminal: "
+											+ ParserConstants.PARSER_ERROR[X] + " no token: " + currentToken.getId()
+											+ " no lexema: " + currentToken.getLexeme() + " na posição: "
+											+ currentToken.getPosition());
 								}
 							} else if (isNaoTerminal(X)) {
 								if (!producao(X, a)) {
-									throw new Error("Erro sintático encontrado em um símbolo não terminal: "+ParserConstants.PARSER_ERROR[X] +
-											" no token: " +token.getId()+" no lexema: "+token.getLexeme()+" na posição: "+token.getPosition());
+									throw new Error("Erro sintático encontrado em um símbolo não terminal: "
+											+ ParserConstants.PARSER_ERROR[X] + " no token: " + currentToken.getId()
+											+ " no lexema: " + currentToken.getLexeme() + " na posição: "
+											+ currentToken.getPosition());
 								}
-							} else if(isSemantico(X)) {
-								System.out.println(token);
-								System.out.println(X - ParserConstants.FIRST_SEMANTIC_ACTION);
-								AnalisadorSemantico.run(X, token);
+							} else if (isSemantico(X)) {
+								System.out.println("Previous Token: " + previousToken);
+								AnalisadorSemantico.run(X, previousToken);
 							}
 
 						}
@@ -207,7 +210,7 @@ public class Pane {
 					textArea.setText("Nenhum erro encontrado, boa!");
 
 				} catch (LexicalError e) {
-					textArea.setText("Erro léxico: "+ e.getMessage() + ", na posição " + e.getPosition());
+					textArea.setText("Erro léxico: " + e.getMessage() + ", na posição " + e.getPosition());
 				} catch (Error e) {
 					textArea.setText(e.getMessage());
 				}
@@ -226,9 +229,9 @@ public class Pane {
 	}
 
 	public static boolean isNaoTerminal(int X) {
-		return X >= Constants.FIRST_NON_TERMINAL && X < Constants.FIRST_SEMANTIC_ACTION ;
+		return X >= Constants.FIRST_NON_TERMINAL && X < Constants.FIRST_SEMANTIC_ACTION;
 	}
-	
+
 	public static boolean isSemantico(int X) {
 		return X >= Constants.FIRST_SEMANTIC_ACTION;
 	}
