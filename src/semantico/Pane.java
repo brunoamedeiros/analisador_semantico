@@ -199,7 +199,6 @@ public class Pane {
 											+ currentToken.getPosition());
 								}
 							} else if (isSemantico(X)) {
-								System.out.println("Previous Token: " + previousToken);
 								AnalisadorSemantico.run(X, previousToken);
 							}
 

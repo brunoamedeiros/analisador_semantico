@@ -67,7 +67,7 @@ class AreaLiterais {
  * classes "Tipos", "AreaInstrucoes" e "AreaLiterais" foi criada por Maicon,
  * Reinaldo e Fabio e adaptada para este aplicativo.
  */
-class Hipotetica {
+class MaquinaHipotetica {
 	public static int MaxInst = 1000;
 	public static int MaxList = 30;
 	public static int b; // base do segmento
@@ -84,7 +84,7 @@ class Hipotetica {
 	 * Construtor sem parâmetros. Os atributos "nv", "np" e "num_impr" são
 	 * inicializados com valores padrões.
 	 */
-	Hipotetica() {
+	MaquinaHipotetica() {
 		num_impr = 0;
 	}
 
@@ -190,7 +190,7 @@ class Hipotetica {
 
 		topo = 0;
 		b = 0; // registrador base
-		p = 0; // aponta próxima instrução
+		p = 0; // aponta pr�xima instru��o
 		S[1] = 0; // SL
 		S[2] = 0; // DL
 		S[3] = 0; // RA
