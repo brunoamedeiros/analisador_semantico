@@ -204,7 +204,9 @@ public class Pane {
 
 						}
 					}
-
+					
+					AnalisadorSemantico.show();
+					
 					textArea.setForeground(new Color(0, 128, 0));
 					textArea.setText("Nenhum erro encontrado, boa!");
 

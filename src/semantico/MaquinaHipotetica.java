@@ -2,7 +2,7 @@ package semantico;
 
 //Maquina_virtual para a linguagem LMS
 //Equipe:Maicon, reinaldo e Fabio - 2003A
-//Adaptado e corrigido por Rog√©rio Cortina e Charbel Szymanski - 2003B
+//Adaptado e corrigido por RogÈrio Cortina e Charbel Szymanski - 2003B
 //Atualizada por Charbel Szymanski em 2016A
 //Atualizada por Charbel Szymanski em 2017A
 //Atualizada por Charbel Szymanski em 2018B
@@ -11,7 +11,7 @@ import javax.swing.JOptionPane;
 
 /**
  * Classe utilizada pela classe "Hipotetica" para armazenar as informa√ß√µes de
- * uma instru√ß√£o. Esta classe, bem como as classes "AreaInstrucoes",
+ * uma instruÁ„o. Esta classe, bem como as classes "AreaInstrucoes",
  * "AreaLiterais" e "Hipotetica" foi criada por Maicon, Reinaldo e Fabio e
  * adaptada para este aplicativo.
  */
@@ -21,8 +21,8 @@ class Tipos {
 	public int op2;
 
 	/**
-	 * Construtor sem par√¢metros. Todos os atributos s√£o inicializados com valores
-	 * padr√µes.
+	 * Construtor sem par‚metros. Todos os atributos s„o inicializados com valores
+	 * padrıes.
 	 */
 	Tipos() {
 		codigo = 0;
@@ -32,8 +32,8 @@ class Tipos {
 }
 
 /**
- * Classe utilizada pela classe "Hipotetica" para armazenar a √°rea de
- * instru√ß√µes. Esta classe, bem como as classes "Tipos", "AreaLiterais" e
+ * Classe utilizada pela classe "Hipotetica" para armazenar a ¡rea de
+ * instruÁıes. Esta classe, bem como as classes "Tipos", "AreaLiterais" e
  * "Hipotetica" foi criada por Maicon, Reinaldo e Fabio e adaptada para este
  * aplicativo.
  */
@@ -42,8 +42,8 @@ class AreaInstrucoes {
 	public int LC;
 
 	/**
-	 * Construtor sem par√¢metros. Todos os atributos s√£o inicializados com valores
-	 * padr√µes.
+	 * Construtor sem par‚metros. Todos os atributos s„o inicializados com valores
+	 * padrıes.
 	 */
 	AreaInstrucoes() {
 		for (int i = 0; i < 1000; i++) {
@@ -53,7 +53,7 @@ class AreaInstrucoes {
 }
 
 /**
- * Classe utilizada pela classe "Hipotetica" para armazenar a √°rea de literais.
+ * Classe utilizada pela classe "Hipotetica" para armazenar a ¡rea de literais.
  * Esta classe, bem como as classes "Tipos", "AreaInstrucoes" e "Hipotetica" foi
  * criada por Maicon, Reinaldo e Fabio e adaptada para este aplicativo.
  */
@@ -63,7 +63,7 @@ class AreaLiterais {
 }
 
 /**
- * Classe que implementa a m√°quina hipot√©tica. Esta classe, bem como as
+ * Classe que implementa a m·quina hipotÈtica. Esta classe, bem como as
  * classes "Tipos", "AreaInstrucoes" e "AreaLiterais" foi criada por Maicon,
  * Reinaldo e Fabio e adaptada para este aplicativo.
  */
@@ -72,27 +72,27 @@ class MaquinaHipotetica {
 	public static int MaxList = 30;
 	public static int b; // base do segmento
 	public static int topo; // topo da pilha da base de dados
-	public static int p; // apontador de instru√ß√µes
+	public static int p; // apontador de instruÁıes
 	public static int l; // primeiro operando
 	public static int a; // segundo operando
-	public static int operador; // codigo da instru√ß√£o
+	public static int operador; // codigo da instruÁ„o
 	public static int k; // segundo operando
 	public static int num_impr;
 	public static int[] S = new int[1000];
 
 	/**
-	 * Construtor sem par√¢metros. Os atributos "nv", "np" e "num_impr" s√£o
-	 * inicializados com valores padr√µes.
+	 * Construtor sem par‚metros. Os atributos "nv", "np" e "num_impr" s„o
+	 * inicializados com valores padrıes.
 	 */
 	MaquinaHipotetica() {
 		num_impr = 0;
 	}
 
 	/**
-	 * Inicializa a √°rea de instru√ß√µes.
+	 * Inicializa a ¡rea de instruÁıes.
 	 */
 	public static void InicializaAI(AreaInstrucoes AI) {
-		for (int i = 0; i < MaxInst; i++) { // come√ßava de 1
+		for (int i = 0; i < MaxInst; i++) { // comeÁava de 1
 			AI.AI[i].codigo = -1;
 			AI.AI[i].op1 = -1;
 			AI.AI[i].op2 = -1;
@@ -101,7 +101,7 @@ class MaquinaHipotetica {
 	}
 
 	/**
-	 * Inicializa a √°rea de literais
+	 * Inicializa a ¡rea de literais
 	 */
 	public static void InicializaAL(AreaLiterais AL) {
 
@@ -112,8 +112,8 @@ class MaquinaHipotetica {
 	}
 
 	/**
-	 * Inclui uma instru√ß√£o na √°rea de instru√ß√µes utilizada pela m√°quina
-	 * hipot√©tica.
+	 * Inclui uma instruÁ„o na ¡rea de instruÁıes utilizada pela m·quina
+	 * hipotÈtica.
 	 */
 	public boolean IncluirAI(AreaInstrucoes AI, int c, int o1, int o2) {
 		boolean aux;
@@ -141,8 +141,8 @@ class MaquinaHipotetica {
 	}
 
 	/**
-	 * Altera uma instru√ß√£o da √°rea de instru√ß√µes utilizada pela m√°quina
-	 * hipot√©tica.
+	 * Altera uma instruÁ„o da ¡rea de instruÁıes utilizada pela m·quina
+	 * hipotÈtica.
 	 */
 	public static void AlterarAI(AreaInstrucoes AI, int s, int o1, int o2) {
 
@@ -156,7 +156,7 @@ class MaquinaHipotetica {
 	}
 
 	/**
-	 * Inclui um literal na √°rea de literais utilizada pela m√°quina hipot√©tica.
+	 * Inclui um literal na ¡rea de literais utilizada pela m·quina hipotÈtica.
 	 */
 	public static boolean IncluirAL(AreaLiterais AL, String literal) {
 		boolean aux;
@@ -184,7 +184,7 @@ class MaquinaHipotetica {
 	}
 
 	/**
-	 * Respons√°vel por interpretar as instru√ß√µes.
+	 * Respons·vel por interpretar as instruÁıes.
 	 */
 	public static void Interpreta(AreaInstrucoes AI, AreaLiterais AL) {
 
@@ -198,7 +198,7 @@ class MaquinaHipotetica {
 
 		String leitura;
 
-		while (operador != 26) {// Enquanto instru√ß√£o diferente de PARE
+		while (operador != 26) {// Enquanto instruÁ„o diferente de PARE
 
 			operador = AI.AI[p].codigo;
 
@@ -209,7 +209,7 @@ class MaquinaHipotetica {
 			switch (operador) {
 			case 1:// RETU
 				p = S[b + 2];
-				topo = b - a - 1; // a = n¬∫ de par√¢metros
+				topo = b - a - 1; // a = n∫ de par‚metros
 				b = S[b + 1];
 				break;
 
@@ -245,7 +245,7 @@ class MaquinaHipotetica {
 
 			case 8: // DIVI
 				if (S[topo] == 0) {
-					JOptionPane.showMessageDialog(null, "Divis√£o por zero.", "Erro durante a execu√ß√£o",
+					JOptionPane.showMessageDialog(null, "Divis„o por zero.", "Erro durante a execuÁ„o",
 							JOptionPane.ERROR_MESSAGE);
 					S[topo - 1] = S[topo - 1] / S[topo];
 					topo = topo - 1;
@@ -353,18 +353,18 @@ class MaquinaHipotetica {
 				break;
 
 			case 22:// IMPR
-				JOptionPane.showMessageDialog(null, "" + S[topo], "Informa√ß√£o", JOptionPane.INFORMATION_MESSAGE);
+				JOptionPane.showMessageDialog(null, "" + S[topo], "InformaÁ„o", JOptionPane.INFORMATION_MESSAGE);
 				// System.out.println(S[topo]); A
 				topo = topo - 1;
 				break;
 
 			case 23:// IMPRLIT
 				if (a >= AL.LIT) {
-					JOptionPane.showMessageDialog(null, "Literal n√£o encontrado na √°rea dos literais.",
-							"Erro durante a execu√ß√£o", JOptionPane.ERROR_MESSAGE);
+					JOptionPane.showMessageDialog(null, "Literal n„o encontrado na ¡rea dos literais.",
+							"Erro durante a execuÁ„o", JOptionPane.ERROR_MESSAGE);
 					// System.out.println("ERRO >> Literal nao encontrada na area"); A
 				} else {
-					JOptionPane.showMessageDialog(null, "" + AL.AL[a], "Informa√ß√£o", JOptionPane.INFORMATION_MESSAGE);
+					JOptionPane.showMessageDialog(null, "" + AL.AL[a], "InformaÁ„o", JOptionPane.INFORMATION_MESSAGE);
 					// System.out.println(AL.AL[a]); A
 					// AL.LIT++;
 				}
@@ -408,7 +408,7 @@ class MaquinaHipotetica {
 		} // fim do while
 	}// fim do procedimento interpreta
 
-	private static void mostraAreaDados() {
+	public void mostraAreaDados() {
 		for (int i = topo; i >= 0; i--) {
 			System.out.println(i + "[" + S[i] + "]");
 		}
