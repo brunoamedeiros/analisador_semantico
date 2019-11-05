@@ -158,7 +158,7 @@ class MaquinaHipotetica {
 	/**
 	 * Inclui um literal na Área de literais utilizada pela máquina hipotética.
 	 */
-	public static boolean IncluirAL(AreaLiterais AL, String literal) {
+	public boolean IncluirAL(AreaLiterais AL, String literal) {
 		boolean aux;
 		if (AL.LIT >= MaxList) {
 			aux = false;

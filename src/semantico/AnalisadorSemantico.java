@@ -10,7 +10,7 @@ public class AnalisadorSemantico {
 	static Integer ARR_SIZE;
 	static Hashtable hTable;
 	static Category tipoIdentificador;
-	static int numeroVariable, numeroParameter, deslocamento, nivel = 0, currentCRCTvalue;
+	static int numeroVariable, numeroParameter, deslocamento, nivel = 0, numeroLiteral = 0;
 	static boolean hasParameter = false;
 	static Element constant, element114, element129;
 	static AreaInstrucoes AI;
@@ -164,9 +164,21 @@ public class AnalisadorSemantico {
 						throw new Error("Identificador " + element114.getName() + " não é uma váriavel, é uma "
 								+ element129.getCategoria());
 					} else if (element129.getCategoria().equals(Category.CONSTANT)) {
-						geraCRCT(token.getLexeme());
+						
+						String lexeme = token.getLexeme();
+						char c = lexeme.charAt(0);
+						
+						int valueCRCT;
+						
+						if(Character.isLetter(c)) {
+							valueCRCT = element129.getAllA();
+						} else {
+							valueCRCT = Integer.parseInt(lexeme);
+						}
+						
+						geraCRCT(valueCRCT);
 					} else {
-							geraCRVL(nivel, element129.getAllA()); // CRVL
+						geraCRVL(nivel, element129.getAllA()); // CRVL
 					}
 					
 					break;
@@ -190,6 +202,24 @@ public class AnalisadorSemantico {
 				throw new Error("Identificador " + token.getLexeme() + "não está declarado! :(");
 			}
 
+			break;
+		
+		// #130 - WRITELN após expressão - IMPRL
+		case 130:
+//			armazena cadeia literal na área de literais (pega o literal identificado pelo léxico e transposta para área de literais – área_literais) 
+			maquinaHipotetica.IncluirAL(AL, token.getLexeme());
+			
+//			gera IMPRLIT tendo como parâmetro o numero de ordem do literal 
+			maquinaHipotetica.IncluirAI(AI, 23, -1, numeroLiteral);
+			
+//			incrementa no. de ordem do literal 
+			numeroLiteral++;
+			
+			break;
+			
+		// #131 - WRITELN após expressão - IMPR
+		case 131:
+			maquinaHipotetica.IncluirAI(AI, 22, -1, -1);
 			break;
 
 		// #141 - CMIG : compara igual
@@ -272,7 +302,8 @@ public class AnalisadorSemantico {
 
 		// #154 - Expressão – inteiro - CRCT
 		case 154:
-			geraCRCT(token.getLexeme());
+			int value = Integer.parseInt(token.getLexeme());
+			geraCRCT(value);
 
 			break;
 
@@ -324,9 +355,8 @@ public class AnalisadorSemantico {
 		numeroParameter++;
 	}
 
-	private static void geraCRCT(String lexeme) {
-		currentCRCTvalue = Integer.parseInt(lexeme);
-		maquinaHipotetica.IncluirAI(AI, 3, -1, currentCRCTvalue);
+	private static void geraCRCT(int value) {
+		maquinaHipotetica.IncluirAI(AI, 3, -1, value);
 	}
 
 	private static void geraCRVL(int nivel, Integer geralA) {
