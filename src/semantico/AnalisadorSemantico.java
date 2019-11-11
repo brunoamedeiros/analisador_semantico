@@ -1,5 +1,7 @@
 package semantico;
 
+import java.util.Stack;
+
 import tabelaSimbolos.Category;
 import tabelaSimbolos.Element;
 import tabelaSimbolos.Hashtable;
@@ -10,13 +12,15 @@ public class AnalisadorSemantico {
 	static Integer ARR_SIZE;
 	static Hashtable hTable;
 	static Category tipoIdentificador;
-	static int numeroVariable, numeroParameter, deslocamento, nivel = 0, numeroLiteral = 0;
+	static int numeroVariable, numeroParameter, deslocamento, deslocamentoParameter, nivel = 0, numeroLiteral = 0,
+			valueCall;
 	static boolean hasParameter = false;
-	static Element constant, element114, element129;
+	static Element constant, element114, element116, element129, procedure;
 	static AreaInstrucoes AI;
 	static AreaLiterais AL;
 	static MaquinaHipotetica maquinaHipotetica = new MaquinaHipotetica();
 	static String contexto, nameToken;
+	static Stack<Integer> desviosDSVS = new Stack<Integer>();
 
 	public static void run(int X, Token token) {
 		int action = X - ParserConstants.FIRST_SEMANTIC_ACTION;
@@ -32,6 +36,7 @@ public class AnalisadorSemantico {
 			AL = new AreaLiterais();
 			maquinaHipotetica.InicializaAL(AL);
 			deslocamento = 3;
+			deslocamentoParameter = -1;
 			numeroVariable = 0;
 			numeroParameter = 0;
 
@@ -40,13 +45,14 @@ public class AnalisadorSemantico {
 		// #101 - Final de programa - PARA
 		case 101:
 			maquinaHipotetica.IncluirAI(AI, 26, -1, -1);
-			
+
 			break;
 
 		// Após declaração de variável - AMEM
 		case 102:
 			maquinaHipotetica.IncluirAI(AI, 24, -1, deslocamento);
-			
+			deslocamento = 3;
+
 			break;
 
 		// #104 - Encontrado o nome de rótulo, de variável, ou de parâmetro de procedure
@@ -62,8 +68,8 @@ public class AnalisadorSemantico {
 				break;
 			case PARAMETER:
 
-				action104(token, tipoIdentificador, nivel, deslocamento, -1);
-				incrementDeslocamento();
+				action104(token, tipoIdentificador, nivel, deslocamentoParameter, -1);
+				incrementDeslocamentoParameter();
 				incrementNumberParameter();
 
 				break;
@@ -104,13 +110,37 @@ public class AnalisadorSemantico {
 			if (hTable.objExists(token.getLexeme())) {
 				throw new Error("Nome de " + tipoIdentificador + " repetido! :(");
 			} else {
-				Element procedure = new Element(token.getLexeme(), tipoIdentificador, nivel, null, null);
+				procedure = new Element(token.getLexeme(), tipoIdentificador, nivel, AI.LC + 1, 0);
 				hTable.put(procedure);
 			}
 
 			hasParameter = false;
 			numeroParameter = 0;
 			nivel++;
+
+			break;
+
+		// #109 - Após declaração de procedure
+		case 109:
+			if (hasParameter) {
+				procedure.setAllB(numeroParameter);
+			}
+
+			maquinaHipotetica.IncluirAI(AI, 19, -1, 0); // DSVS
+
+			desviosDSVS.push(AI.LC - 1);
+
+			break;
+
+		// #110 - Fim de procedure
+		case 110:
+			int instrucao = AI.LC + 1;
+
+			maquinaHipotetica.AlterarAI(AI, desviosDSVS.pop(), -1, instrucao); // Altera DSVS
+
+			maquinaHipotetica.IncluirAI(AI, 1, -1, numeroParameter); // RETU
+
+			nivel--;
 
 			break;
 
@@ -138,10 +168,43 @@ public class AnalisadorSemantico {
 
 			break;
 
-		// #115 - Após expressão em atribuição
+		// #115 - Após expressão em atribuição	
 		case 115:
 			geraARMZ(nivel, element114.getAllA());
 
+			break;
+
+		// #116 - Chamada de procedure - CALL
+		case 116:
+			nameToken = token.getLexeme();
+
+			if (hTable.objExists(nameToken)) {
+				element116 = hTable.get(nameToken);
+
+				if (!element116.getCategoria().equals(Category.PROCEDURE)) {
+					throw new Error("Identificador " + element116.getName() + " não é uma procedure, é uma "
+							+ element116.getCategoria());
+				} else {
+					valueCall = element116.getAllA();
+				}
+			} else {
+				throw new Error("Identificador " + token.getLexeme() + " não está declarado! :(");
+			}
+
+			break;
+
+		// #117 - Após comando call
+		case 117:
+						
+			if(numeroParameter != element116.getAllB()) {
+				throw new Error("Está faltando instanciar parametros para a procedure " + token.getLexeme());
+			} else {
+				
+//				diffNivel = nivel - ?
+				
+				maquinaHipotetica.IncluirAI(AI, 25, nivel, valueCall);
+			}
+			
 			break;
 
 		// #128 - Comando READLN início
@@ -164,23 +227,23 @@ public class AnalisadorSemantico {
 						throw new Error("Identificador " + element114.getName() + " não é uma váriavel, é uma "
 								+ element129.getCategoria());
 					} else if (element129.getCategoria().equals(Category.CONSTANT)) {
-						
+
 						String lexeme = token.getLexeme();
 						char c = lexeme.charAt(0);
-						
+
 						int valueCRCT;
-						
-						if(Character.isLetter(c)) {
+
+						if (Character.isLetter(c)) {
 							valueCRCT = element129.getAllA();
 						} else {
 							valueCRCT = Integer.parseInt(lexeme);
 						}
-						
+
 						geraCRCT(valueCRCT);
 					} else {
 						geraCRVL(nivel, element129.getAllA()); // CRVL
 					}
-					
+
 					break;
 
 				case "readln":
@@ -191,7 +254,7 @@ public class AnalisadorSemantico {
 						maquinaHipotetica.IncluirAI(AI, 21, -1, -1); // LEIT
 						geraARMZ(nivel, element129.getAllA());
 					}
-					
+
 					break;
 
 				default:
@@ -203,20 +266,20 @@ public class AnalisadorSemantico {
 			}
 
 			break;
-		
+
 		// #130 - WRITELN após expressão - IMPRL
 		case 130:
 //			armazena cadeia literal na área de literais (pega o literal identificado pelo léxico e transposta para área de literais – área_literais) 
 			maquinaHipotetica.IncluirAL(AL, token.getLexeme());
-			
+
 //			gera IMPRLIT tendo como parâmetro o numero de ordem do literal 
 			maquinaHipotetica.IncluirAI(AI, 23, -1, numeroLiteral);
-			
+
 //			incrementa no. de ordem do literal 
 			numeroLiteral++;
-			
+
 			break;
-			
+
 		// #131 - WRITELN após expressão - IMPR
 		case 131:
 			maquinaHipotetica.IncluirAI(AI, 22, -1, -1);
@@ -323,7 +386,7 @@ public class AnalisadorSemantico {
 			throw new IllegalArgumentException("Unexpected value: " + action);
 		}
 
-//		hTable.showAll();
+		hTable.showAll();
 
 	}
 
@@ -337,14 +400,12 @@ public class AnalisadorSemantico {
 		}
 	}
 
-	public static void show() {
-		for (Tipos instrucoes : AI.AI) {
-			System.out.println(instrucoes.codigo + " |  " + instrucoes.op1 + "  |  " + instrucoes.op2);
-		}
-	}
-	
 	private static void incrementDeslocamento() {
 		deslocamento++;
+	}
+
+	private static void incrementDeslocamentoParameter() {
+		deslocamentoParameter--;
 	}
 
 	private static void incrementNumberVariable() {
@@ -368,5 +429,14 @@ public class AnalisadorSemantico {
 //		int diffNivel = nivel - ?;
 
 		maquinaHipotetica.IncluirAI(AI, 4, nivel, geralA);
+	}
+
+	static int count = 0;
+
+	public static void show() {
+		for (Tipos instrucoes : AI.AI) {
+			System.out.println(count + " | " + instrucoes.codigo + " | " + instrucoes.op1 + " |  " + instrucoes.op2);
+			count++;
+		}
 	}
 }
