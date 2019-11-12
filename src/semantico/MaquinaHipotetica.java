@@ -38,7 +38,7 @@ class Tipos {
  * aplicativo.
  */
 class AreaInstrucoes {
-	public Tipos AI[] = new Tipos[50];
+	public Tipos AI[] = new Tipos[100];
 	public int LC;
 
 	/**
@@ -46,7 +46,7 @@ class AreaInstrucoes {
 	 * padrões.
 	 */
 	AreaInstrucoes() {
-		for (int i = 0; i < 50; i++) {
+		for (int i = 0; i < 100; i++) {
 			AI[i] = new Tipos();
 		}
 	}
@@ -68,7 +68,7 @@ class AreaLiterais {
  * Reinaldo e Fabio e adaptada para este aplicativo.
  */
 class MaquinaHipotetica {
-	public static int MaxInst = 50;
+	public static int MaxInst = 100;
 	public static int MaxList = 30;
 	public static int b; // base do segmento
 	public static int topo; // topo da pilha da base de dados
@@ -78,7 +78,7 @@ class MaquinaHipotetica {
 	public static int operador; // codigo da instrução
 	public static int k; // segundo operando
 	public static int num_impr;
-	public static int[] S = new int[50];
+	public static int[] S = new int[100];
 
 	/**
 	 * Construtor sem parâmetros. Os atributos "nv", "np" e "num_impr" são

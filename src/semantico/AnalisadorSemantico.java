@@ -20,7 +20,7 @@ public class AnalisadorSemantico {
 	static AreaLiterais AL;
 	static MaquinaHipotetica maquinaHipotetica = new MaquinaHipotetica();
 	static String contexto, nameToken;
-	static Stack<Integer> desviosDSVS = new Stack<Integer>();
+	static Stack<Integer> desviosDSVS = new Stack<Integer>(), desviosDSVF = new Stack<Integer>();
 
 	public static void run(int X, Token token) {
 		int action = X - ParserConstants.FIRST_SEMANTIC_ACTION;
@@ -126,9 +126,8 @@ public class AnalisadorSemantico {
 				procedure.setAllB(numeroParameter);
 			}
 
+			desviosDSVS.push(AI.LC);
 			maquinaHipotetica.IncluirAI(AI, 19, -1, 0); // DSVS
-
-			desviosDSVS.push(AI.LC - 1);
 
 			break;
 
@@ -168,7 +167,7 @@ public class AnalisadorSemantico {
 
 			break;
 
-		// #115 - Após expressão em atribuição	
+		// #115 - Após expressão em atribuição
 		case 115:
 			geraARMZ(nivel, element114.getAllA());
 
@@ -195,16 +194,59 @@ public class AnalisadorSemantico {
 
 		// #117 - Após comando call
 		case 117:
-						
-			if(numeroParameter != element116.getAllB()) {
+
+			if (numeroParameter != element116.getAllB()) {
 				throw new Error("Está faltando instanciar parametros para a procedure " + token.getLexeme());
 			} else {
-				
+
 //				diffNivel = nivel - ?
-				
+
 				maquinaHipotetica.IncluirAI(AI, 25, nivel, valueCall);
 			}
-			
+
+			break;
+
+		// #120 - Após expressão num comando IF
+		case 120:
+
+			desviosDSVF.push(AI.LC);
+			maquinaHipotetica.IncluirAI(AI, 20, -1, 0); // DSVF
+
+			break;
+
+		// #121 - Após instrução IF
+		case 121:
+
+			int instrucao121 = AI.LC;
+			maquinaHipotetica.AlterarAI(AI, desviosDSVS.pop(), -1, instrucao121); // Altera DSVS
+
+			break;
+
+		// #122 - Após domínio do THEN, antes do ELSE
+		case 122:
+			int instrucao122 = AI.LC + 1;
+			maquinaHipotetica.AlterarAI(AI, desviosDSVF.pop(), -1, instrucao122); // Altera DSVF
+
+			desviosDSVS.push(AI.LC);
+			maquinaHipotetica.IncluirAI(AI, 19, -1, 0); // DSVS
+			break;
+
+		// #123 - Comando WHILE antes da expressão
+		case 123:
+			desviosDSVS.push(AI.LC);			
+			break;
+
+		// #124 - Comando WHILE depois da expressão
+		case 124:
+			desviosDSVF.push(AI.LC);
+			maquinaHipotetica.IncluirAI(AI, 20, -1, 0); // DSVF
+			break;
+
+		// #125 - Após comando WHILE
+		case 125:
+			int instrucao125DSVF = AI.LC + 1;
+			maquinaHipotetica.AlterarAI(AI, desviosDSVF.pop(), -1, instrucao125DSVF); // Altera DSVF
+			maquinaHipotetica.IncluirAI(AI, 19, -1, desviosDSVS.pop()); // DSVS
 			break;
 
 		// #128 - Comando READLN início
