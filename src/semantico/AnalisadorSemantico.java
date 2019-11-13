@@ -13,9 +13,9 @@ public class AnalisadorSemantico {
 	static Hashtable hTable;
 	static Category tipoIdentificador;
 	static int numeroVariable, numeroParameter, deslocamento, deslocamentoParameter, nivel = 0, numeroLiteral = 0,
-			valueCall;
+			valueCall, value139, numeroParameterEfetivos;
 	static boolean hasParameter = false;
-	static Element constant, element114, element116, element129, procedure;
+	static Element constant, element114, element116, element129, procedure, element137;
 	static AreaInstrucoes AI;
 	static AreaLiterais AL;
 	static MaquinaHipotetica maquinaHipotetica = new MaquinaHipotetica();
@@ -39,6 +39,10 @@ public class AnalisadorSemantico {
 			deslocamentoParameter = -1;
 			numeroVariable = 0;
 			numeroParameter = 0;
+			numeroParameterEfetivos = 0;
+			numeroLiteral = 0;
+			desviosDSVF.removeAllElements();
+			desviosDSVF.removeAllElements();
 
 			break;
 
@@ -50,7 +54,7 @@ public class AnalisadorSemantico {
 
 		// Após declaração de variável - AMEM
 		case 102:
-			maquinaHipotetica.IncluirAI(AI, 24, -1, deslocamento);
+			geraAMEM(deslocamento);
 			deslocamento = 3;
 
 			break;
@@ -125,9 +129,10 @@ public class AnalisadorSemantico {
 			if (hasParameter) {
 				procedure.setAllB(numeroParameter);
 			}
+			
+			System.out.println(procedure.getName() + " nº parameters: " + procedure.getAllB());
 
-			desviosDSVS.push(AI.LC);
-			maquinaHipotetica.IncluirAI(AI, 19, -1, 0); // DSVS
+			geraDSVS();
 
 			break;
 
@@ -135,7 +140,7 @@ public class AnalisadorSemantico {
 		case 110:
 			int instrucao = AI.LC + 1;
 
-			maquinaHipotetica.AlterarAI(AI, desviosDSVS.pop(), -1, instrucao); // Altera DSVS
+			alteraDSVS(desviosDSVS.pop(), instrucao);
 
 			maquinaHipotetica.IncluirAI(AI, 1, -1, numeroParameter); // RETU
 
@@ -194,23 +199,28 @@ public class AnalisadorSemantico {
 
 		// #117 - Após comando call
 		case 117:
-
-			if (numeroParameter != element116.getAllB()) {
-				throw new Error("Está faltando instanciar parametros para a procedure " + token.getLexeme());
+			if (element116.getAllB() != numeroParameterEfetivos) {
+				throw new Error("Está faltando instanciar parametros para a procedure " + element116.getName());
 			} else {
 
 //				diffNivel = nivel - ?
 
 				maquinaHipotetica.IncluirAI(AI, 25, nivel, valueCall);
 			}
+			
+			numeroParameterEfetivos = 0;
+
+			break;
+
+		// #118 - Após expressão, em comando call
+		case 118:
+			numeroParameterEfetivos++;
 
 			break;
 
 		// #120 - Após expressão num comando IF
 		case 120:
-
-			desviosDSVF.push(AI.LC);
-			maquinaHipotetica.IncluirAI(AI, 20, -1, 0); // DSVF
+			geraDSVF();
 
 			break;
 
@@ -218,35 +228,37 @@ public class AnalisadorSemantico {
 		case 121:
 
 			int instrucao121 = AI.LC;
-			maquinaHipotetica.AlterarAI(AI, desviosDSVS.pop(), -1, instrucao121); // Altera DSVS
+			alteraDSVS(desviosDSVS.pop(), instrucao121);
 
 			break;
 
 		// #122 - Após domínio do THEN, antes do ELSE
 		case 122:
 			int instrucao122 = AI.LC + 1;
-			maquinaHipotetica.AlterarAI(AI, desviosDSVF.pop(), -1, instrucao122); // Altera DSVF
+			alteraDSVF(desviosDSVF.pop(), instrucao122);
 
-			desviosDSVS.push(AI.LC);
-			maquinaHipotetica.IncluirAI(AI, 19, -1, 0); // DSVS
+			geraDSVS();
+
 			break;
 
 		// #123 - Comando WHILE antes da expressão
 		case 123:
-			desviosDSVS.push(AI.LC);			
+			desviosDSVS.push(AI.LC);
+
 			break;
 
 		// #124 - Comando WHILE depois da expressão
 		case 124:
-			desviosDSVF.push(AI.LC);
-			maquinaHipotetica.IncluirAI(AI, 20, -1, 0); // DSVF
+			geraDSVF();
+
 			break;
 
 		// #125 - Após comando WHILE
 		case 125:
 			int instrucao125DSVF = AI.LC + 1;
-			maquinaHipotetica.AlterarAI(AI, desviosDSVF.pop(), -1, instrucao125DSVF); // Altera DSVF
-			maquinaHipotetica.IncluirAI(AI, 19, -1, desviosDSVS.pop()); // DSVS
+			alteraDSVF(desviosDSVF.pop(), instrucao125DSVF);
+			alteraDSVS(19, desviosDSVS.pop());
+
 			break;
 
 		// #128 - Comando READLN início
@@ -325,6 +337,55 @@ public class AnalisadorSemantico {
 		// #131 - WRITELN após expressão - IMPR
 		case 131:
 			maquinaHipotetica.IncluirAI(AI, 22, -1, -1);
+
+			break;
+
+		// #37 - Após variável controle comando FOR
+		case 137:
+			nameToken = token.getLexeme();
+
+			if (hTable.objExists(nameToken)) {
+				element137 = hTable.get(nameToken);
+
+				if (!element137.getCategoria().equals(Category.VARIABLE)) {
+					throw new Error("Identificador " + element137.getName() + " não é uma váriavel, é uma "
+							+ element137.getCategoria());
+				}
+			} else {
+				throw new Error("Identificador " + token.getLexeme() + " não está declarado! :(");
+			}
+
+			break;
+
+		// #138 - Após expressão valor inicial
+		case 138:
+			geraARMZ(nivel, element137.getAllA());
+
+			break;
+
+		// #139 - Após expressão – valor final
+		case 139:
+			value139 = AI.LC;
+			geraCOPI();
+			geraCRVL(nivel, element137.getAllA());
+			geraCMAI();
+			geraDSVF();
+
+			break;
+
+		// #140 - Após comando em FOR
+		case 140:
+			geraCRVL(nivel, element137.getAllA());
+			geraCRCT(1);
+			geraSOMA();
+			geraARMZ(nivel, element137.getAllA());
+
+			int instrucao140 = AI.LC + 1;
+			alteraDSVF(desviosDSVF.pop(), instrucao140);
+
+			geraDSVS(value139);
+			geraAMEM(-1);
+
 			break;
 
 		// #141 - CMIG : compara igual
@@ -347,7 +408,7 @@ public class AnalisadorSemantico {
 
 		// #144 - CMAI : compara maior igual
 		case 144:
-			maquinaHipotetica.IncluirAI(AI, 18, -1, -1);
+			geraCMAI();
 
 			break;
 
@@ -371,7 +432,7 @@ public class AnalisadorSemantico {
 
 		// #148 - Expressão – soma - SOMA
 		case 148:
-			maquinaHipotetica.IncluirAI(AI, 5, -1, -1);
+			geraSOMA();
 
 			break;
 
@@ -456,6 +517,7 @@ public class AnalisadorSemantico {
 
 	private static void incrementNumberParameter() {
 		numeroParameter++;
+		System.out.println("numeroParameter: " + numeroParameter);
 	}
 
 	private static void geraCRCT(int value) {
@@ -471,6 +533,45 @@ public class AnalisadorSemantico {
 //		int diffNivel = nivel - ?;
 
 		maquinaHipotetica.IncluirAI(AI, 4, nivel, geralA);
+	}
+
+	private static void geraSOMA() {
+		maquinaHipotetica.IncluirAI(AI, 5, -1, -1);
+	}
+
+	private static void geraCMAI() {
+		maquinaHipotetica.IncluirAI(AI, 18, -1, -1);
+	}
+
+	private static void geraCOPI() {
+		maquinaHipotetica.IncluirAI(AI, 28, -1, -1);
+	}
+
+	private static void geraDSVF() {
+		desviosDSVF.push(AI.LC);
+		maquinaHipotetica.IncluirAI(AI, 20, -1, 0);
+	}
+
+	private static void alteraDSVF(int positionTS, int instrucao) {
+		maquinaHipotetica.AlterarAI(AI, positionTS, -1, instrucao);
+	}
+
+	private static void geraDSVS() {
+		desviosDSVS.push(AI.LC);
+		maquinaHipotetica.IncluirAI(AI, 19, -1, 0);
+	}
+
+	private static void geraDSVS(int position) {
+		desviosDSVS.push(AI.LC);
+		maquinaHipotetica.IncluirAI(AI, 19, -1, position);
+	}
+
+	private static void alteraDSVS(int position, int instrucao) {
+		maquinaHipotetica.AlterarAI(AI, position, -1, instrucao);
+	}
+
+	private static void geraAMEM(int value) {
+		maquinaHipotetica.IncluirAI(AI, 24, -1, value);
 	}
 
 	static int count = 0;
