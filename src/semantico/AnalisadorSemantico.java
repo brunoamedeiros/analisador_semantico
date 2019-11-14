@@ -66,8 +66,8 @@ public class AnalisadorSemantico {
 			case VARIABLE:
 
 				action104(token, tipoIdentificador, nivel, deslocamento, -1);
-				incrementNumberVariable();
 				incrementDeslocamento();
+				incrementNumberVariable();
 
 				break;
 			case PARAMETER:
@@ -130,8 +130,6 @@ public class AnalisadorSemantico {
 				procedure.setAllB(numeroParameter);
 			}
 			
-			System.out.println(procedure.getName() + " nº parameters: " + procedure.getAllB());
-
 			geraDSVS();
 
 			break;
@@ -139,8 +137,8 @@ public class AnalisadorSemantico {
 		// #110 - Fim de procedure
 		case 110:
 			int instrucao = AI.LC + 1;
-
-			alteraDSVS(desviosDSVS.pop(), instrucao);
+			System.out.println(desviosDSVS.toString());
+			alteraDSVS(desviosDSVS.peek(), instrucao);
 
 			maquinaHipotetica.IncluirAI(AI, 1, -1, numeroParameter); // RETU
 
@@ -174,7 +172,7 @@ public class AnalisadorSemantico {
 
 		// #115 - Após expressão em atribuição
 		case 115:
-			geraARMZ(nivel, element114.getAllA());
+			geraARMZ(nivel, element114);
 
 			break;
 
@@ -203,9 +201,9 @@ public class AnalisadorSemantico {
 				throw new Error("Está faltando instanciar parametros para a procedure " + element116.getName());
 			} else {
 
-//				diffNivel = nivel - ?
+				int diffNivel = nivel - element116.getNivel();
 
-				maquinaHipotetica.IncluirAI(AI, 25, nivel, valueCall);
+				maquinaHipotetica.IncluirAI(AI, 25, diffNivel, valueCall);
 			}
 			
 			numeroParameterEfetivos = 0;
@@ -295,7 +293,7 @@ public class AnalisadorSemantico {
 
 						geraCRCT(valueCRCT);
 					} else {
-						geraCRVL(nivel, element129.getAllA()); // CRVL
+						geraCRVL(nivel, element129); // CRVL
 					}
 
 					break;
@@ -306,7 +304,7 @@ public class AnalisadorSemantico {
 								+ element129.getCategoria());
 					} else {
 						maquinaHipotetica.IncluirAI(AI, 21, -1, -1); // LEIT
-						geraARMZ(nivel, element129.getAllA());
+						geraARMZ(nivel, element129);
 					}
 
 					break;
@@ -359,7 +357,7 @@ public class AnalisadorSemantico {
 
 		// #138 - Após expressão valor inicial
 		case 138:
-			geraARMZ(nivel, element137.getAllA());
+			geraARMZ(nivel, element137);
 
 			break;
 
@@ -367,7 +365,7 @@ public class AnalisadorSemantico {
 		case 139:
 			value139 = AI.LC;
 			geraCOPI();
-			geraCRVL(nivel, element137.getAllA());
+			geraCRVL(nivel, element137);
 			geraCMAI();
 			geraDSVF();
 
@@ -375,10 +373,10 @@ public class AnalisadorSemantico {
 
 		// #140 - Após comando em FOR
 		case 140:
-			geraCRVL(nivel, element137.getAllA());
+			geraCRVL(nivel, element137);
 			geraCRCT(1);
 			geraSOMA();
-			geraARMZ(nivel, element137.getAllA());
+			geraARMZ(nivel, element137);
 
 			int instrucao140 = AI.LC + 1;
 			alteraDSVF(desviosDSVF.pop(), instrucao140);
@@ -517,22 +515,22 @@ public class AnalisadorSemantico {
 
 	private static void incrementNumberParameter() {
 		numeroParameter++;
-		System.out.println("numeroParameter: " + numeroParameter);
 	}
 
 	private static void geraCRCT(int value) {
 		maquinaHipotetica.IncluirAI(AI, 3, -1, value);
 	}
 
-	private static void geraCRVL(int nivel, Integer geralA) {
-		maquinaHipotetica.IncluirAI(AI, 2, nivel, geralA);
+	private static void geraCRVL(int nivel, Element element) {
+		int diffNivel = nivel - element.getNivel();
+		maquinaHipotetica.IncluirAI(AI, 2, diffNivel, element.getAllA());
 	}
 
-	private static void geraARMZ(int nivel, Integer geralA) {
+	private static void geraARMZ(int nivel, Element element) {
 
-//		int diffNivel = nivel - ?;
+		int diffNivel = nivel - element.getNivel();
 
-		maquinaHipotetica.IncluirAI(AI, 4, nivel, geralA);
+		maquinaHipotetica.IncluirAI(AI, 4, diffNivel, element.getAllA());
 	}
 
 	private static void geraSOMA() {
@@ -557,6 +555,7 @@ public class AnalisadorSemantico {
 	}
 
 	private static void geraDSVS() {
+		System.out.println("gera DSVS:" + AI.LC);
 		desviosDSVS.push(AI.LC);
 		maquinaHipotetica.IncluirAI(AI, 19, -1, 0);
 	}
