@@ -13,17 +13,25 @@ public class AnalisadorSemantico {
 	static Hashtable hTable;
 	static Category tipoIdentificador;
 	static int numeroVariable, numeroParameter, deslocamento, deslocamentoParameter, nivel = 0, numeroLiteral = 0,
-			valueCall, value139, numeroParameterEfetivos;
+			valueCall, value139, numeroParameterEfetivos, valueRepeat;
 	static boolean hasParameter = false;
 	static Element constant, element114, element116, element129, procedure, element137;
 	static AreaInstrucoes AI;
 	static AreaLiterais AL;
 	static MaquinaHipotetica maquinaHipotetica = new MaquinaHipotetica();
 	static String contexto, nameToken;
-	static Stack<Integer> desviosDSVS = new Stack<Integer>(), desviosDSVF = new Stack<Integer>();
+	static Stack<Integer> desviosDSVS = new Stack<Integer>(), desviosDSVF = new Stack<Integer>(),
+			desviosDSVSiF = new Stack<Integer>(), desviosDSVSRepeat = new Stack<Integer>(),
+			desviosDSVT = new Stack<Integer>();
+	static Stack<String> parametersProcedure = new Stack<String>();
+	static Stack<Element> procedures = new Stack<Element>();
 
 	public static void run(int X, Token token) {
 		int action = X - ParserConstants.FIRST_SEMANTIC_ACTION;
+		
+		System.out.println(action);
+		System.out.println(token.getLexeme());
+		System.out.println();
 
 		switch (action) {
 
@@ -36,13 +44,18 @@ public class AnalisadorSemantico {
 			AL = new AreaLiterais();
 			maquinaHipotetica.InicializaAL(AL);
 			deslocamento = 3;
-			deslocamentoParameter = -1;
+			deslocamentoParameter = 0;
 			numeroVariable = 0;
 			numeroParameter = 0;
 			numeroParameterEfetivos = 0;
 			numeroLiteral = 0;
 			desviosDSVF.removeAllElements();
-			desviosDSVF.removeAllElements();
+			desviosDSVS.removeAllElements();
+			desviosDSVSiF.removeAllElements();
+			parametersProcedure.removeAllElements();
+			procedures.removeAllElements();
+			AI.LC = 0;
+//			AL.LIT = 1;
 
 			break;
 
@@ -52,7 +65,7 @@ public class AnalisadorSemantico {
 
 			break;
 
-		// Após declaração de variável - AMEM
+		// #102 - Após declaração de variável - AMEM
 		case 102:
 			geraAMEM(deslocamento);
 			deslocamento = 3;
@@ -71,8 +84,8 @@ public class AnalisadorSemantico {
 
 				break;
 			case PARAMETER:
-
-				action104(token, tipoIdentificador, nivel, deslocamentoParameter, -1);
+				parametersProcedure.push(token.getLexeme());
+				action104(token, tipoIdentificador, nivel, 0, -1);
 				incrementDeslocamentoParameter();
 				incrementNumberParameter();
 
@@ -116,10 +129,13 @@ public class AnalisadorSemantico {
 			} else {
 				procedure = new Element(token.getLexeme(), tipoIdentificador, nivel, AI.LC + 1, 0);
 				hTable.put(procedure);
+				procedures.push(procedure);
 			}
 
 			hasParameter = false;
 			numeroParameter = 0;
+			deslocamentoParameter = 0;
+			parametersProcedure.removeAllElements();
 			nivel++;
 
 			break;
@@ -128,8 +144,15 @@ public class AnalisadorSemantico {
 		case 109:
 			if (hasParameter) {
 				procedure.setAllB(numeroParameter);
+
+				// preenche atributos dos parâmetros (deslocamento):
+				// primeiro parâmetro –> deslocamento = - (np)
+				// segundo parâmetro –> deslocamento = - (np – 1)
+				for (int i = 1; i <= procedure.getAllB(); i++) {
+					hTable.getObj(parametersProcedure.pop(), nivel).setAllA((-i));
+				}
 			}
-			
+
 			geraDSVS();
 
 			break;
@@ -137,10 +160,9 @@ public class AnalisadorSemantico {
 		// #110 - Fim de procedure
 		case 110:
 			int instrucao = AI.LC + 1;
-			System.out.println(desviosDSVS.toString());
-			alteraDSVS(desviosDSVS.peek(), instrucao);
+			alteraDesvio(desviosDSVS.pop(), instrucao);
 
-			maquinaHipotetica.IncluirAI(AI, 1, -1, numeroParameter); // RETU
+			maquinaHipotetica.IncluirAI(AI, 1, -1, procedures.pop().getAllB()); // RETU
 
 			nivel--;
 
@@ -205,7 +227,7 @@ public class AnalisadorSemantico {
 
 				maquinaHipotetica.IncluirAI(AI, 25, diffNivel, valueCall);
 			}
-			
+
 			numeroParameterEfetivos = 0;
 
 			break;
@@ -226,17 +248,26 @@ public class AnalisadorSemantico {
 		case 121:
 
 			int instrucao121 = AI.LC;
-			alteraDSVS(desviosDSVS.pop(), instrucao121);
+			if (desviosDSVSiF.size() > 0) {
+				alteraDesvio(desviosDSVSiF.pop(), instrucao121);
+			}
 
 			break;
 
 		// #122 - Após domínio do THEN, antes do ELSE
 		case 122:
 			int instrucao122 = AI.LC + 1;
-			alteraDSVF(desviosDSVF.pop(), instrucao122);
+			alteraDesvio(desviosDSVF.pop(), instrucao122);
 
-			geraDSVS();
+			geraDSVSiF();
 
+			break;
+
+		// #157 - Instrução nova para resolver o problema quando existe um IF sem ELSE,
+		// modificação feita no ParserConstants.java:76
+		case 157:
+			int instrucao157 = AI.LC;
+			alteraDesvio(desviosDSVF.pop(), instrucao157);
 			break;
 
 		// #123 - Comando WHILE antes da expressão
@@ -254,8 +285,20 @@ public class AnalisadorSemantico {
 		// #125 - Após comando WHILE
 		case 125:
 			int instrucao125DSVF = AI.LC + 1;
-			alteraDSVF(desviosDSVF.pop(), instrucao125DSVF);
-			alteraDSVS(19, desviosDSVS.pop());
+			alteraDesvio(desviosDSVF.pop(), instrucao125DSVF);
+			geraDSVS(desviosDSVS.pop());
+
+			break;
+
+		// #126 - Comando REPEAT – início
+		case 126:
+			desviosDSVSRepeat.push(AI.LC);
+
+			break;
+
+		// #127 - Comando REPEAT – fim
+		case 127:
+			geraDSVF(desviosDSVSRepeat.pop());
 
 			break;
 
@@ -338,7 +381,56 @@ public class AnalisadorSemantico {
 
 			break;
 
-		// #37 - Após variável controle comando FOR
+		// #132 - Após palavra reservada CASE
+		case 132:
+//			geraDSVS();
+
+			break;
+
+		// #133 - Após comando CASE
+		case 133:
+			int instrucao133 = AI.LC + 1;
+			alteraDesvio(desviosDSVS.pop(), instrucao133);
+			geraAMEM(-1);
+
+			break;
+
+		// #134 - Ramo do CASE após inteiro, último da lista
+		case 134:
+			geraCOPI();
+//			int valueCRCT134 = Integer.parseInt(token.getLexeme());
+//			geraCRCT(valueCRCT134);
+			geraCMIG();
+
+			if (desviosDSVT.size() > 0) {
+				int instrucao134 = AI.LC + 1;
+				alteraDesvio(desviosDSVT.pop(), instrucao134);
+			}
+
+			geraDSVF();
+
+			break;
+
+		// #135 - Após comando em CASE
+		case 135:
+			int instrucao135 = AI.LC + 1;
+			alteraDesvio(desviosDSVF.pop(), instrucao135);
+			geraDSVS();
+
+			break;
+
+		// #136 - Ramo do CASE: após inteiro
+		case 136:
+			geraCOPI();
+			
+//			int valueCRCT136 = Integer.parseInt(token.getLexeme());
+//			geraCRCT(valueCRCT136);
+			geraCMIG();
+			geraDSVT();
+			
+			break;
+
+		// #137 - Após variável controle comando FOR
 		case 137:
 			nameToken = token.getLexeme();
 
@@ -379,7 +471,7 @@ public class AnalisadorSemantico {
 			geraARMZ(nivel, element137);
 
 			int instrucao140 = AI.LC + 1;
-			alteraDSVF(desviosDSVF.pop(), instrucao140);
+			alteraDesvio(desviosDSVF.pop(), instrucao140);
 
 			geraDSVS(value139);
 			geraAMEM(-1);
@@ -388,7 +480,7 @@ public class AnalisadorSemantico {
 
 		// #141 - CMIG : compara igual
 		case 141:
-			maquinaHipotetica.IncluirAI(AI, 15, -1, -1);
+			geraCMIG();
 
 			break;
 
@@ -487,13 +579,13 @@ public class AnalisadorSemantico {
 			throw new IllegalArgumentException("Unexpected value: " + action);
 		}
 
-		hTable.showAll();
+//		hTable.showAll();
 
 	}
 
 	private static void action104(Token token, Category tipoIdentificador, int nivel, int geralA, int geralB) {
 
-		if (hTable.objExists(token.getLexeme())) {
+		if (hTable.objExists(token.getLexeme(), nivel)) {
 			throw new Error("Nome de " + tipoIdentificador + " repetido! :(");
 		} else {
 			Element element = new Element(token.getLexeme(), tipoIdentificador, nivel, geralA, geralB);
@@ -506,7 +598,7 @@ public class AnalisadorSemantico {
 	}
 
 	private static void incrementDeslocamentoParameter() {
-		deslocamentoParameter--;
+		deslocamentoParameter++;
 	}
 
 	private static void incrementNumberVariable() {
@@ -537,6 +629,10 @@ public class AnalisadorSemantico {
 		maquinaHipotetica.IncluirAI(AI, 5, -1, -1);
 	}
 
+	private static void geraCMIG() {
+		maquinaHipotetica.IncluirAI(AI, 15, -1, -1);
+	}
+
 	private static void geraCMAI() {
 		maquinaHipotetica.IncluirAI(AI, 18, -1, -1);
 	}
@@ -550,23 +646,31 @@ public class AnalisadorSemantico {
 		maquinaHipotetica.IncluirAI(AI, 20, -1, 0);
 	}
 
-	private static void alteraDSVF(int positionTS, int instrucao) {
-		maquinaHipotetica.AlterarAI(AI, positionTS, -1, instrucao);
+	private static void geraDSVF(int position) {
+		maquinaHipotetica.IncluirAI(AI, 20, -1, position);
+	}
+
+	private static void alteraDesvio(int position, int instrucao) {
+		maquinaHipotetica.AlterarAI(AI, position, -1, instrucao);
 	}
 
 	private static void geraDSVS() {
-		System.out.println("gera DSVS:" + AI.LC);
 		desviosDSVS.push(AI.LC);
 		maquinaHipotetica.IncluirAI(AI, 19, -1, 0);
 	}
 
 	private static void geraDSVS(int position) {
-		desviosDSVS.push(AI.LC);
 		maquinaHipotetica.IncluirAI(AI, 19, -1, position);
 	}
 
-	private static void alteraDSVS(int position, int instrucao) {
-		maquinaHipotetica.AlterarAI(AI, position, -1, instrucao);
+	private static void geraDSVSiF() {
+		desviosDSVSiF.push(AI.LC);
+		maquinaHipotetica.IncluirAI(AI, 19, -1, 0);
+	}
+	
+	private static void geraDSVT() {
+		desviosDSVT.push(AI.LC);
+		maquinaHipotetica.IncluirAI(AI, 29, -1, 0);
 	}
 
 	private static void geraAMEM(int value) {
