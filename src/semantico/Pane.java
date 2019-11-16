@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.Stack;
 
 import javax.swing.JButton;
@@ -16,6 +17,7 @@ import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JMenuBar;
 import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.JTextPane;
@@ -27,6 +29,9 @@ public class Pane {
 	private JFrame frame;
 	public static Stack<Integer> stack = new Stack<Integer>();
 	public Lexico lexico = new Lexico();
+
+	String column_names1[] = { "#", "Instruction", "Op1", "Op2" };
+	DefaultTableModel tableModel1 = new DefaultTableModel(column_names1, 0);
 
 	/**
 	 * Launch the application.
@@ -60,12 +65,14 @@ public class Pane {
 	 */
 	private void initialize() throws IOException {
 		frame = new JFrame();
-		frame.setBounds(100, 100, 1059, 784);
+		frame.setResizable(false);
+		frame.setTitle("TRADUTOR PARA A LINGUAGEM LMS");
+		frame.setBounds(100, 100, 1068, 784);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.getContentPane().setLayout(null);
 
 		Label fileLabel = new Label("File: ");
-		fileLabel.setBounds(10, 10, 59, 21);
+		fileLabel.setBounds(10, 10, 650, 21);
 		frame.getContentPane().add(fileLabel);
 
 		JTextPane textPane = new JTextPane();
@@ -79,14 +86,12 @@ public class Pane {
 		frame.getContentPane().add(scrollPane);
 
 		JTextArea textArea = new JTextArea();
+		textArea.setWrapStyleWord(true);
+		textArea.setEditable(false);
 		textArea.setFont(new Font("Courier New", Font.PLAIN, 14));
 		textArea.setForeground(Color.RED);
 		textArea.setBounds(10, 597, 1025, 110);
 		frame.getContentPane().add(textArea);
-
-		Label tokensLabel = new Label("Tokens");
-		tokensLabel.setBounds(670, 10, 59, 21);
-		frame.getContentPane().add(tokensLabel);
 
 		Label consoleLabel = new Label("Console");
 		consoleLabel.setBounds(10, 573, 59, 21);
@@ -94,6 +99,10 @@ public class Pane {
 
 		String column_names[] = { "ID", "Lexeme", "Position" };
 		DefaultTableModel tableModel = new DefaultTableModel(column_names, 0);
+
+		JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
+		tabbedPane.setBounds(670, 37, 373, 530);
+		frame.getContentPane().add(tabbedPane);
 		JTable table = new JTable(tableModel);
 
 		table.getColumnModel().getColumn(0).setPreferredWidth(10);
@@ -101,9 +110,15 @@ public class Pane {
 		table.getColumnModel().getColumn(2).setPreferredWidth(10);
 
 		JScrollPane scrollPane_1 = new JScrollPane();
-		scrollPane_1.setBounds(670, 37, 365, 530);
+		tabbedPane.addTab("Tokens", null, scrollPane_1, null);
 		scrollPane_1.setViewportView(table);
-		frame.getContentPane().add(scrollPane_1);
+		JTable table1 = new JTable(tableModel1);
+
+		table1.getColumnModel().getColumn(0).setPreferredWidth(10);
+
+		JScrollPane scrollPane_2 = new JScrollPane();
+		tabbedPane.addTab("Intermediate Code", null, scrollPane_2, null);
+		scrollPane_2.setViewportView(table1);
 
 		JMenuBar menuBar = new JMenuBar();
 		frame.setJMenuBar(menuBar);
@@ -113,11 +128,14 @@ public class Pane {
 		FileNameExtensionFilter filter = new FileNameExtensionFilter("Text Files", "txt");
 		chooser.setFileFilter(filter);
 
+		JButton btnExec = new JButton("Exec");
+
 		JButton btnOpen = new JButton("Open");
 		menuBar.add(btnOpen);
 
 		btnOpen.addActionListener(ev -> {
 			int returnVal = chooser.showOpenDialog(frame);
+			btnExec.setEnabled(false);
 
 			if (returnVal == JFileChooser.APPROVE_OPTION) {
 				File file = chooser.getSelectedFile();
@@ -149,6 +167,7 @@ public class Pane {
 			if (code.trim().length() != 0) {
 				lexico.setInput(code);
 				tableModel.setRowCount(0);
+				tableModel1.setRowCount(0);
 				textArea.setText("");
 
 				Token t = null;
@@ -192,6 +211,14 @@ public class Pane {
 											+ currentToken.getPosition());
 								}
 							} else if (isNaoTerminal(X)) {
+
+								// Após a instrução 76 <RPINTEIRO> armazena na pilha o integer de cada ramo do
+								// case, para posterior marcação.
+								if (X == 76) {
+									int number = Integer.parseInt(previousToken.getLexeme());
+									AnalisadorSemantico.addIntegerCase(number);
+								}
+
 								if (!producao(X, a)) {
 									throw new Error("Erro sintático encontrado em um símbolo não terminal: "
 											+ ParserConstants.PARSER_ERROR[X] + " no token: " + currentToken.getId()
@@ -199,16 +226,17 @@ public class Pane {
 											+ currentToken.getPosition());
 								}
 							} else if (isSemantico(X)) {
-								AnalisadorSemantico.run(X, previousToken);
+								AnalisadorSemantico.geraInstrucoes(X, previousToken);
 							}
 
 						}
 					}
-					
-					AnalisadorSemantico.show();
-					
+
+					showCodigoIntermediario();
+
 					textArea.setForeground(new Color(0, 128, 0));
 					textArea.setText("Nenhum erro encontrado, boa!");
+					btnExec.setEnabled(true);
 
 				} catch (LexicalError e) {
 					textArea.setText("Erro léxico: " + e.getMessage() + ", na posição " + e.getPosition());
@@ -220,9 +248,20 @@ public class Pane {
 			}
 		});
 
-		JButton btnExec = new JButton("Exec");
 		btnExec.setEnabled(false);
 		menuBar.add(btnExec);
+
+		btnExec.addActionListener(ev -> {
+			AnalisadorSemantico.run();
+		});
+	}
+
+	private void showCodigoIntermediario() {
+		ArrayList<Object[]> instrucoes = AnalisadorSemantico.show();
+
+		for (Object[] row : instrucoes) {
+			tableModel1.addRow(row);
+		}
 	}
 
 	public static boolean isTerminal(int X) {

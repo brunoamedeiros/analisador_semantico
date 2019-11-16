@@ -186,7 +186,7 @@ class MaquinaHipotetica {
 	/**
 	 * Responsável por interpretar as instruções.
 	 */
-	public static void Interpreta(AreaInstrucoes AI, AreaLiterais AL) {
+	public void Interpreta(AreaInstrucoes AI, AreaLiterais AL) {
 
 		topo = 0;
 		b = 0; // registrador base
@@ -247,9 +247,10 @@ class MaquinaHipotetica {
 				if (S[topo] == 0) {
 					JOptionPane.showMessageDialog(null, "Divisão por zero.", "Erro durante a execução",
 							JOptionPane.ERROR_MESSAGE);
-					S[topo - 1] = S[topo - 1] / S[topo];
-					topo = topo - 1;
 				}
+				
+				S[topo - 1] = S[topo - 1] / S[topo];
+				topo = topo - 1;
 				break;
 
 			case 9:// INVR
@@ -405,12 +406,17 @@ class MaquinaHipotetica {
 				}
 				topo = topo - 1;
 			}// fim do case
+			
+			mostraAreaDados();
+			
 		} // fim do while
 	}// fim do procedimento interpreta
 
 	public void mostraAreaDados() {
+		System.out.println("ÁREA DE DADOS");
 		for (int i = topo; i >= 0; i--) {
 			System.out.println(i + "[" + S[i] + "]");
 		}
+		System.out.println();
 	}
 }

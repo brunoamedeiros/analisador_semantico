@@ -1,5 +1,6 @@
 package semantico;
 
+import java.util.ArrayList;
 import java.util.Stack;
 
 import tabelaSimbolos.Category;
@@ -13,7 +14,7 @@ public class AnalisadorSemantico {
 	static Hashtable hTable;
 	static Category tipoIdentificador;
 	static int numeroVariable, numeroParameter, deslocamento, deslocamentoParameter, nivel = 0, numeroLiteral = 0,
-			valueCall, value139, numeroParameterEfetivos, valueRepeat;
+			valueCall, value139, numeroParameterEfetivos, valueRepeat, value132;
 	static boolean hasParameter = false;
 	static Element constant, element114, element116, element129, procedure, element137;
 	static AreaInstrucoes AI;
@@ -22,16 +23,13 @@ public class AnalisadorSemantico {
 	static String contexto, nameToken;
 	static Stack<Integer> desviosDSVS = new Stack<Integer>(), desviosDSVF = new Stack<Integer>(),
 			desviosDSVSiF = new Stack<Integer>(), desviosDSVSRepeat = new Stack<Integer>(),
-			desviosDSVT = new Stack<Integer>();
+			desviosDSVSCase = new Stack<Integer>(), desviosDSVT = new Stack<Integer>(),
+			integerCase = new Stack<Integer>();
 	static Stack<String> parametersProcedure = new Stack<String>();
 	static Stack<Element> procedures = new Stack<Element>();
 
-	public static void run(int X, Token token) {
+	public static void geraInstrucoes(int X, Token token) {
 		int action = X - ParserConstants.FIRST_SEMANTIC_ACTION;
-		
-		System.out.println(action);
-		System.out.println(token.getLexeme());
-		System.out.println();
 
 		switch (action) {
 
@@ -52,9 +50,11 @@ public class AnalisadorSemantico {
 			desviosDSVF.removeAllElements();
 			desviosDSVS.removeAllElements();
 			desviosDSVSiF.removeAllElements();
+			desviosDSVSCase.removeAllElements();
 			parametersProcedure.removeAllElements();
 			procedures.removeAllElements();
-			AI.LC = 0;
+			integerCase.removeAllElements();
+//			AI.LC = 1;
 //			AL.LIT = 1;
 
 			break;
@@ -383,14 +383,19 @@ public class AnalisadorSemantico {
 
 		// #132 - Após palavra reservada CASE
 		case 132:
-//			geraDSVS();
+			integerCase.removeAllElements();
 
 			break;
 
 		// #133 - Após comando CASE
 		case 133:
-			int instrucao133 = AI.LC + 1;
-			alteraDesvio(desviosDSVS.pop(), instrucao133);
+
+			for (Integer desvio : desviosDSVSCase) {
+				alteraDesvio(desvio, AI.LC);
+			}
+
+			desviosDSVSCase.removeAllElements();
+
 			geraAMEM(-1);
 
 			break;
@@ -398,13 +403,17 @@ public class AnalisadorSemantico {
 		// #134 - Ramo do CASE após inteiro, último da lista
 		case 134:
 			geraCOPI();
-//			int valueCRCT134 = Integer.parseInt(token.getLexeme());
-//			geraCRCT(valueCRCT134);
+			geraCRCT(integerCase.pop());
 			geraCMIG();
 
 			if (desviosDSVT.size() > 0) {
+				
 				int instrucao134 = AI.LC + 1;
-				alteraDesvio(desviosDSVT.pop(), instrucao134);
+				for (Integer desvio : desviosDSVT) {
+					alteraDesvio(desvio, instrucao134);
+				}
+
+				desviosDSVT.removeAllElements();
 			}
 
 			geraDSVF();
@@ -415,19 +424,17 @@ public class AnalisadorSemantico {
 		case 135:
 			int instrucao135 = AI.LC + 1;
 			alteraDesvio(desviosDSVF.pop(), instrucao135);
-			geraDSVS();
+			geraDSVSCase();
 
 			break;
 
 		// #136 - Ramo do CASE: após inteiro
 		case 136:
 			geraCOPI();
-			
-//			int valueCRCT136 = Integer.parseInt(token.getLexeme());
-//			geraCRCT(valueCRCT136);
+			geraCRCT(integerCase.pop());
 			geraCMIG();
 			geraDSVT();
-			
+
 			break;
 
 		// #137 - Após variável controle comando FOR
@@ -583,6 +590,11 @@ public class AnalisadorSemantico {
 
 	}
 
+	public static void run() {
+		maquinaHipotetica.Interpreta(AI, AL);
+		maquinaHipotetica.mostraAreaDados();
+	}
+
 	private static void action104(Token token, Category tipoIdentificador, int nivel, int geralA, int geralB) {
 
 		if (hTable.objExists(token.getLexeme(), nivel)) {
@@ -667,7 +679,12 @@ public class AnalisadorSemantico {
 		desviosDSVSiF.push(AI.LC);
 		maquinaHipotetica.IncluirAI(AI, 19, -1, 0);
 	}
-	
+
+	private static void geraDSVSCase() {
+		desviosDSVSCase.push(AI.LC);
+		maquinaHipotetica.IncluirAI(AI, 19, -1, 0);
+	}
+
 	private static void geraDSVT() {
 		desviosDSVT.push(AI.LC);
 		maquinaHipotetica.IncluirAI(AI, 29, -1, 0);
@@ -677,12 +694,150 @@ public class AnalisadorSemantico {
 		maquinaHipotetica.IncluirAI(AI, 24, -1, value);
 	}
 
-	static int count = 0;
+	public static void addIntegerCase(int integer) {
+		integerCase.add(integer);
+	}
 
-	public static void show() {
+	public static ArrayList<Object[]> show() {
+		String instrucao = null;
+		int row = 0, op1 = 0, op2 = 0;
+
+		ArrayList<Object[]> listaInstrucoes = new ArrayList<Object[]>();
+
 		for (Tipos instrucoes : AI.AI) {
-			System.out.println(count + " | " + instrucoes.codigo + " | " + instrucoes.op1 + " |  " + instrucoes.op2);
-			count++;
+
+			switch (instrucoes.codigo) {
+			case 1:
+
+				instrucao = "RETU";
+				break;
+
+			case 2:
+				instrucao = "CRVL";
+				break;
+
+			case 3:
+				instrucao = "CRCT";
+				break;
+
+			case 4:
+				instrucao = "ARMZ";
+				break;
+
+			case 5:
+				instrucao = "SOMA";
+				break;
+
+			case 6:
+				instrucao = "SUBT";
+				break;
+
+			case 7:
+				instrucao = "MULT";
+				break;
+
+			case 8:
+				instrucao = "DIVI";
+				break;
+
+			case 9:
+				instrucao = "INVR";
+				break;
+
+			case 10:
+				instrucao = "NEGA";
+				break;
+
+			case 11:
+				instrucao = "CONJ";
+				break;
+
+			case 12:
+				instrucao = "DISJ";
+				break;
+
+			case 13:
+				instrucao = "CMME";
+				break;
+
+			case 14:
+				instrucao = "CMMA";
+				break;
+
+			case 15:
+				instrucao = "CMIG";
+				break;
+
+			case 16:
+				instrucao = "CMDF";
+				break;
+
+			case 17:
+				instrucao = "CMEI";
+				break;
+
+			case 18:
+				instrucao = "CMAI";
+				break;
+
+			case 19:
+				instrucao = "DSVS";
+				break;
+
+			case 20:
+				instrucao = "DSVF";
+				break;
+
+			case 21:
+				instrucao = "LEIT";
+				break;
+
+			case 22:
+				instrucao = "IMPR";
+				break;
+
+			case 23:
+				instrucao = "IMPRL";
+				break;
+
+			case 24:
+				instrucao = "AMEM";
+				break;
+
+			case 25:
+				instrucao = "CALL";
+				break;
+
+			case 26:
+				instrucao = "PARA";
+				break;
+
+			case 27:
+				instrucao = "NADA";
+				break;
+
+			case 28:
+				instrucao = "COPI";
+				break;
+
+			case 29:
+				instrucao = "DSVT";
+				break;
+			}
+
+			op1 = instrucoes.op1;
+			op2 = instrucoes.op2;
+
+			listaInstrucoes.add(new Object[] { row, instrucao, op1, op2 });
+
+			row++;
+
+			if (instrucoes.codigo == 26) {
+				break;
+			}
 		}
+
+		return listaInstrucoes;
+
 	}
 }
