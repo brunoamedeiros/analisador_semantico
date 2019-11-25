@@ -357,7 +357,7 @@ public class AnalisadorSemantico {
 				}
 
 			} else {
-				throw new Error("Identificador " + token.getLexeme() + "não está declarado! :(");
+				throw new Error("Identificador " + token.getLexeme() + " não está declarado! :(");
 			}
 
 			break;
