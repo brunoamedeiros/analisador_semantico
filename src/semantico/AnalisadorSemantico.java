@@ -319,7 +319,7 @@ public class AnalisadorSemantico {
 				case "expressão":
 
 					if (element129.getCategoria().equals(Category.PROCEDURE)) {
-						throw new Error("Identificador " + element114.getName() + " não é uma váriavel, é uma "
+						throw new Error("Identificador " + element129.getName() + " não é uma váriavel, é uma "
 								+ element129.getCategoria());
 					} else if (element129.getCategoria().equals(Category.CONSTANT)) {
 
@@ -343,7 +343,7 @@ public class AnalisadorSemantico {
 
 				case "readln":
 					if (!element129.getCategoria().equals(Category.VARIABLE)) {
-						throw new Error("Identificador " + element114.getName() + " não é uma váriavel, é uma "
+						throw new Error("Identificador " + element129.getName() + " não é uma váriavel, é uma "
 								+ element129.getCategoria());
 					} else {
 						maquinaHipotetica.IncluirAI(AI, 21, -1, -1); // LEIT
